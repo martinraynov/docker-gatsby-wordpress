@@ -1,0 +1,53 @@
+version: '3.7'
+
+networks:
+  lb-common:
+    external: true
+  php:
+    name: php_network
+    driver: overlay
+
+services:
+  wordpress:
+    depends_on:
+      - db
+    image: wordpress:php8.2
+    restart: always
+    deploy:
+      replicas: 1
+      labels:
+        traefik.frontend.rule: "Host:gatsby-wordpress.local.io"
+        traefik.enable: "true"
+        traefik.backend: "gatsby_wordpress_back"
+        traefik.port: "80"
+    environment:
+      WORDPRESS_DB_HOST: db
+      WORDPRESS_DB_USER: testuser
+      WORDPRESS_DB_PASSWORD: testpass
+      WORDPRESS_DB_NAME: gatsby_test
+    volumes:
+      - wordpress:/var/www/html
+    networks:
+      - lb-common
+      - php
+
+  db:
+    image: mysql:5.7
+    restart: always
+    deploy:
+      replicas: 1
+      labels:
+        - "traefik.enable=false"
+    environment:
+      MYSQL_DATABASE: gatsby_test
+      MYSQL_USER: testuser
+      MYSQL_PASSWORD: testpass
+      MYSQL_RANDOM_ROOT_PASSWORD: '1'
+    volumes:
+      - db:/var/lib/mysql
+    networks:
+      - php
+
+volumes:
+  wordpress:
+  db:
